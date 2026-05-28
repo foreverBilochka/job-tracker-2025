@@ -342,6 +342,31 @@
       font-size: 12px;
     }
 
+    /* ── Heart like button ───────────────────────────── */
+    .heart-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 18px;
+      line-height: 1;
+      padding: 4px;
+      border-radius: 6px;
+      transition: transform .15s cubic-bezier(.34,1.56,.64,1), opacity .15s;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0.3;
+      filter: grayscale(1);
+      user-select: none;
+    }
+    .heart-btn:hover { transform: scale(1.25); opacity: 0.7; }
+    .heart-btn.liked { opacity: 1; filter: none; animation: heartPop .3s cubic-bezier(.34,1.56,.64,1); }
+    @keyframes heartPop {
+      0%   { transform: scale(1); }
+      50%  { transform: scale(1.4); }
+      100% { transform: scale(1); }
+    }
+
     .check-cell {
       text-align: center;
     }
@@ -844,6 +869,7 @@
       <button class="filter-btn" data-filter="Interview">Interview</button>
       <button class="filter-btn" data-filter="Rejected">Rejected</button>
       <button class="filter-btn" data-filter="Offer">Offer</button>
+      <button class="filter-btn" data-filter="liked">♥ Liked</button>
     </div>
   </div>
 
@@ -853,6 +879,7 @@
       <thead>
         <tr>
           <th>#</th>
+          <th>♥</th>
           <th>Company</th>
           <th>Vacancy</th>
           <th>Link</th>
@@ -880,16 +907,7 @@
 <script>
   // ── Seed data ─────────────────────────────────────────────────────────────
   const SEED = [
-    { company:"Boosters",   vacancy:"Senior Product Designer",  link:"https://jobs.dou.ua",           skills:"інтерв'ю, опитування, юзабіліті-тестування",               date:"12.05.2025", cv:1, cover:1, details:0, interview:"",           comment:"",                   status:"Applied"   },
-    { company:"Grammarly",  vacancy:"Lead Product Designer",    link:"https://grammarly.com/jobs",    skills:"design systems, cross-platform, Figma, user research",      date:"15.05.2025", cv:1, cover:1, details:0, interview:"",           comment:"Strong culture fit", status:"Applied"   },
-    { company:"Headspace",  vacancy:"Senior UX Designer",       link:"https://headspace.com/careers", skills:"mobile, wellness, prototyping, usability testing",          date:"16.05.2025", cv:1, cover:0, details:0, interview:"",           comment:"No cover needed",    status:"Applied"   },
-    { company:"Notion",     vacancy:"Product Designer",         link:"https://notion.so/jobs",        skills:"design systems, collaboration, Figma, React basics",        date:"18.05.2025", cv:1, cover:1, details:1, interview:"",           comment:"Portfolio reviewed", status:"Interview" },
-    { company:"Calm",       vacancy:"Senior Product Designer",  link:"https://calm.com/jobs",         skills:"mobile UX, animation, onboarding flows, A/B testing",       date:"20.05.2025", cv:1, cover:1, details:0, interview:"",           comment:"",                   status:"Applied"   },
-    { company:"Linear",     vacancy:"Product Designer",         link:"https://linear.app/jobs",       skills:"B2B SaaS, design systems, developer tools",                 date:"21.05.2025", cv:1, cover:0, details:0, interview:"",           comment:"Impressive team",    status:"Rejected"  },
-    { company:"Figma",      vacancy:"Senior Product Designer",  link:"https://figma.com/jobs",        skills:"design tools, prototyping, plugin ecosystem",               date:"22.05.2025", cv:1, cover:1, details:1, interview:"28.05.2025", comment:"First round done",   status:"Interview" },
-    { company:"Miro",       vacancy:"Lead UX Designer",         link:"https://miro.com/jobs",         skills:"collaboration, whiteboard UX, enterprise, Figma",           date:"23.05.2025", cv:1, cover:1, details:0, interview:"",           comment:"",                   status:"Applied"   },
-    { company:"Spotify",    vacancy:"Product Designer",         link:"https://spotifyjobs.com",       skills:"audio UX, personalization, data-driven design",             date:"24.05.2025", cv:1, cover:0, details:0, interview:"",           comment:"Dream company",      status:"Applied"   },
-    { company:"Stripe",     vacancy:"Senior Product Designer",  link:"https://stripe.com/jobs",       skills:"fintech, developer UX, complex forms, design systems",      date:"25.05.2025", cv:1, cover:1, details:1, interview:"",           comment:"",                   status:"Applied"   },
+    { company:"Boosters",   vacancy:"Senior Product Designer",  link:"https://jobs.dou.ua",           skills:"інтерв'ю, опитування, юзабіліті-тестування",               date:"12.05.2025", cv:1, cover:1, details:0, interview:"",           comment:"",                   status:"Applied",   liked:0 },
   ];
 
   // ── Persistent store ──────────────────────────────────────────────────────
@@ -957,7 +975,9 @@
 
   function filtered() {
     return JOBS.filter(j => {
-      const matchFilter = currentFilter === "all" || j.status === currentFilter;
+      const matchFilter = currentFilter === "all" || currentFilter === "liked"
+        ? currentFilter === "liked" ? j.liked : true
+        : j.status === currentFilter;
       const q = currentSearch.toLowerCase();
       const matchSearch = !q || [j.company, j.vacancy, j.skills, j.comment]
         .some(f => (f || "").toLowerCase().includes(q));
@@ -976,6 +996,7 @@
     tbody.innerHTML = data.map((j, i) => `
       <tr data-id="${j._id}">
         <td class="td-num">${i + 1}</td>
+        <td style="text-align:center"><button class="heart-btn ${j.liked ? 'liked' : ''}" data-id="${j._id}" title="${j.liked ? 'Unlike' : 'Like'}">♥</button></td>
         <td class="td-company">${j.company}</td>
         <td class="td-vacancy">${j.vacancy || "—"}</td>
         <td class="td-link">${j.link ? `<a href="${j.link}" target="_blank" rel="noopener noreferrer">View →</a>` : `<span style="color:var(--muted)">—</span>`}</td>
@@ -994,6 +1015,17 @@
 
   // ── Table interactions ────────────────────────────────────────────────────
   document.getElementById("tbody").addEventListener("click", e => {
+    const heart = e.target.closest(".heart-btn");
+    if (heart) {
+      const job = JOBS.find(j => j._id === heart.dataset.id);
+      if (!job) return;
+      job.liked = job.liked ? 0 : 1;
+      heart.classList.toggle("liked", !!job.liked);
+      heart.title = job.liked ? "Unlike" : "Like";
+      save();
+      if (currentFilter === "liked") render();
+      return;
+    }
     const chk = e.target.closest(".check[data-field]");
     if (!chk) return;
     const job = JOBS.find(j => j._id === chk.dataset.id);
@@ -1087,6 +1119,7 @@
       interview: fmtDate(intRaw),
       comment:   document.getElementById("f-comment").value.trim(),
       status:    document.getElementById("f-status").value,
+      liked:     0,
     };
 
     JOBS.push(entry);
