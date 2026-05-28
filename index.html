@@ -360,7 +360,7 @@
       user-select: none;
     }
     .heart-btn:hover { transform: scale(1.25); opacity: 0.7; }
-    .heart-btn.liked { opacity: 1; filter: none; animation: heartPop .3s cubic-bezier(.34,1.56,.64,1); }
+    .heart-btn.liked { opacity: 1; filter: none; color: #ff3b5c; text-shadow: 0 0 14px rgba(255,59,92,.7); animation: heartPop .3s cubic-bezier(.34,1.56,.64,1); }
     @keyframes heartPop {
       0%   { transform: scale(1); }
       50%  { transform: scale(1.4); }
@@ -400,6 +400,21 @@
       max-width: 180px;
       font-style: italic;
     }
+
+    .edit-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: var(--muted);
+      padding: 5px 6px;
+      border-radius: 6px;
+      display: inline-flex;
+      align-items: center;
+      opacity: 0;
+      transition: color .15s, background .15s, opacity .15s;
+    }
+    tbody tr:hover .edit-btn { opacity: 1; }
+    .edit-btn:hover { color: var(--accent2); background: rgba(99,102,241,.12); }
 
     /* Status select */
     .status-select {
@@ -891,6 +906,7 @@
           <th>Interview</th>
           <th>Comment</th>
           <th>Status</th>
+          <th></th>
         </tr>
       </thead>
       <tbody id="tbody"></tbody>
@@ -925,6 +941,13 @@
     if (!iso) return "";
     const [y, m, d] = iso.split("-");
     return `${d}.${m}.${y}`;
+  }
+
+  function toISODate(ddmmyyyy) {
+    if (!ddmmyyyy) return "";
+    const [d, m, y] = ddmmyyyy.split(".");
+    if (!d || !m || !y) return "";
+    return `${y}-${m}-${d}`;
   }
 
   function counts(data) {
@@ -1008,6 +1031,9 @@
         <td class="td-interview ${j.interview ? "" : "empty"}">${j.interview || "—"}</td>
         <td class="td-comment">${j.comment || "—"}</td>
         <td>${statusSelect(j._id, j.status)}</td>
+        <td><button class="edit-btn" data-id="${j._id}" title="Edit">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+        </button></td>
       </tr>
     `).join("");
     renderStats(counts(data));
@@ -1015,6 +1041,12 @@
 
   // ── Table interactions ────────────────────────────────────────────────────
   document.getElementById("tbody").addEventListener("click", e => {
+    const editBtn = e.target.closest(".edit-btn");
+    if (editBtn) {
+      const job = JOBS.find(j => j._id === editBtn.dataset.id);
+      if (job) openModal(job);
+      return;
+    }
     const heart = e.target.closest(".heart-btn");
     if (heart) {
       const job = JOBS.find(j => j._id === heart.dataset.id);
@@ -1057,15 +1089,39 @@
   const overlay   = document.getElementById("modal-overlay");
   const form      = document.getElementById("app-form");
   const toastEl   = document.getElementById("toast");
+  let editingId   = null;
 
-  function openModal() {
+  function openModal(job) {
+    editingId = job ? job._id : null;
     form.reset();
     ["tog-cv","tog-cover","tog-details"].forEach(id => {
       document.getElementById(id).classList.remove("checked");
     });
-    // default date to today
-    const today = new Date().toISOString().slice(0,10);
-    document.getElementById("f-date").value = today;
+
+    if (job) {
+      document.getElementById("f-company").value  = job.company   || "";
+      document.getElementById("f-vacancy").value   = job.vacancy   || "";
+      document.getElementById("f-link").value      = job.link      || "";
+      document.getElementById("f-skills").value    = job.skills    || "";
+      document.getElementById("f-date").value      = toISODate(job.date);
+      document.getElementById("f-status").value    = job.status    || "Applied";
+      document.getElementById("f-interview").value = toISODate(job.interview);
+      document.getElementById("f-comment").value   = job.comment   || "";
+      ["cv","cover","details"].forEach(field => {
+        if (job[field]) {
+          document.getElementById("f-" + field).checked = true;
+          document.getElementById("tog-" + field).classList.add("checked");
+        }
+      });
+      document.getElementById("modal-title").textContent      = "Edit Application";
+      document.querySelector(".btn-submit").textContent        = "Save Changes";
+    } else {
+      const today = new Date().toISOString().slice(0,10);
+      document.getElementById("f-date").value = today;
+      document.getElementById("modal-title").textContent      = "New Application";
+      document.querySelector(".btn-submit").textContent        = "Add to Tracker";
+    }
+
     overlay.classList.add("open");
     document.getElementById("f-company").focus();
   }
@@ -1106,27 +1162,47 @@
     const dateRaw = document.getElementById("f-date").value;
     const intRaw  = document.getElementById("f-interview").value;
 
-    const entry = {
-      _id: "j" + (_nextId++),
-      company,
-      vacancy:   document.getElementById("f-vacancy").value.trim(),
-      link:      document.getElementById("f-link").value.trim(),
-      skills:    document.getElementById("f-skills").value.trim(),
-      date:      fmtDate(dateRaw),
-      cv:        document.getElementById("f-cv").checked ? 1 : 0,
-      cover:     document.getElementById("f-cover").checked ? 1 : 0,
-      details:   document.getElementById("f-details").checked ? 1 : 0,
-      interview: fmtDate(intRaw),
-      comment:   document.getElementById("f-comment").value.trim(),
-      status:    document.getElementById("f-status").value,
-      liked:     0,
-    };
-
-    JOBS.push(entry);
-    save();
-    closeModal();
-    render();
-    showToast(`✓ ${company} added to tracker`);
+    if (editingId) {
+      const job = JOBS.find(j => j._id === editingId);
+      if (job) {
+        job.company   = company;
+        job.vacancy   = document.getElementById("f-vacancy").value.trim();
+        job.link      = document.getElementById("f-link").value.trim();
+        job.skills    = document.getElementById("f-skills").value.trim();
+        job.date      = fmtDate(dateRaw);
+        job.cv        = document.getElementById("f-cv").checked ? 1 : 0;
+        job.cover     = document.getElementById("f-cover").checked ? 1 : 0;
+        job.details   = document.getElementById("f-details").checked ? 1 : 0;
+        job.interview = fmtDate(intRaw);
+        job.comment   = document.getElementById("f-comment").value.trim();
+        job.status    = document.getElementById("f-status").value;
+      }
+      save();
+      closeModal();
+      render();
+      showToast(`✓ ${company} updated`);
+    } else {
+      const entry = {
+        _id: "j" + (_nextId++),
+        company,
+        vacancy:   document.getElementById("f-vacancy").value.trim(),
+        link:      document.getElementById("f-link").value.trim(),
+        skills:    document.getElementById("f-skills").value.trim(),
+        date:      fmtDate(dateRaw),
+        cv:        document.getElementById("f-cv").checked ? 1 : 0,
+        cover:     document.getElementById("f-cover").checked ? 1 : 0,
+        details:   document.getElementById("f-details").checked ? 1 : 0,
+        interview: fmtDate(intRaw),
+        comment:   document.getElementById("f-comment").value.trim(),
+        status:    document.getElementById("f-status").value,
+        liked:     0,
+      };
+      JOBS.push(entry);
+      save();
+      closeModal();
+      render();
+      showToast(`✓ ${company} added to tracker`);
+    }
   });
 
   // ── Filter / search events ────────────────────────────────────────────────
