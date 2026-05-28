@@ -991,9 +991,6 @@
           <th>Link</th>
           <th>Key Skills</th>
           <th>Date Sent</th>
-          <th>CV</th>
-          <th>Cover</th>
-          <th>Details</th>
           <th>Interview</th>
           <th>Comment</th>
           <th>Letter</th>
@@ -1117,9 +1114,6 @@
         <td class="td-link">${j.link ? `<a href="${j.link}" target="_blank" rel="noopener noreferrer">View →</a>` : `<span style="color:var(--muted)">—</span>`}</td>
         <td class="td-skills">${j.skills || "—"}</td>
         <td class="td-date">${j.date || "—"}</td>
-        <td class="check-cell">${checkCell(j.cv,      j._id, "cv")}</td>
-        <td class="check-cell">${checkCell(j.cover,   j._id, "cover")}</td>
-        <td class="check-cell">${checkCell(j.details, j._id, "details")}</td>
         <td class="td-interview ${j.interview ? "" : "empty"}">${j.interview || "—"}</td>
         <td class="td-comment">${j.comment || "—"}</td>
         <td style="text-align:center">
