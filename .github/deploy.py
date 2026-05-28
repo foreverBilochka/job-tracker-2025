@@ -51,14 +51,14 @@ def upload(path):
 print("Uploading files...")
 file_list = [upload(f) for f in FILES]
 
-url = f"/v13/deployments"
+params = f"?projectId={PROJECT_ID}"
 if ORG_ID:
-    url += f"?teamId={ORG_ID}"
+    params += f"&teamId={ORG_ID}"
+url = f"/v13/deployments{params}"
 
 print("Creating deployment...")
 result = api("POST", url, {
     "name": "job-tracker",
-    "projectId": PROJECT_ID,
     "target": "production",
     "files": file_list,
 })
