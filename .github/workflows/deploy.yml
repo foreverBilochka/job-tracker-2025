@@ -10,10 +10,52 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Deploy to Vercel
-        uses: amondnet/vercel-action@v25
-        with:
-          vercel-token: ${{ secrets.VERCEL_TOKEN }}
-          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
-          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
-          vercel-args: '--prod'
+      - name: Deploy to Vercel via API
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+        run: |
+          # Upload each file and collect sha + size
+          upload_file() {
+            local path=$1
+            local sha=$(sha1sum "$path" | awk '{print $1}')
+            local size=$(wc -c < "$path")
+            curl -sf -X POST "https://api.vercel.com/v2/files" \
+              -H "Authorization: Bearer $VERCEL_TOKEN" \
+              -H "Content-Length: $size" \
+              -H "x-vercel-digest: $sha" \
+              --data-binary @"$path" > /dev/null
+            echo "$path $sha $size"
+          }
+
+          HTML=$(upload_file index.html)
+          JSON=$(upload_file vercel.json)
+
+          HTML_SHA=$(echo $HTML | awk '{print $2}')
+          HTML_SZ=$(echo $HTML  | awk '{print $3}')
+          JSON_SHA=$(echo $JSON | awk '{print $2}')
+          JSON_SZ=$(echo $JSON  | awk '{print $3}')
+
+          RESPONSE=$(curl -sf -X POST \
+            "https://api.vercel.com/v13/deployments?teamId=$VERCEL_ORG_ID" \
+            -H "Authorization: Bearer $VERCEL_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d "{
+              \"projectId\": \"$VERCEL_PROJECT_ID\",
+              \"target\": \"production\",
+              \"files\": [
+                {\"file\": \"index.html\", \"sha\": \"$HTML_SHA\", \"size\": $HTML_SZ},
+                {\"file\": \"vercel.json\", \"sha\": \"$JSON_SHA\", \"size\": $JSON_SZ}
+              ]
+            }")
+
+          echo "$RESPONSE" | python3 -c "
+          import sys, json
+          d = json.load(sys.stdin)
+          url = d.get('url') or d.get('inspectorUrl') or str(d)
+          print('Deployed:', url)
+          if d.get('error'):
+              print('ERROR:', d['error'])
+              sys.exit(1)
+          "
