@@ -57,6 +57,7 @@ if ORG_ID:
 
 print("Creating deployment...")
 result = api("POST", url, {
+    "name": "job-tracker",
     "projectId": PROJECT_ID,
     "target": "production",
     "files": file_list,
