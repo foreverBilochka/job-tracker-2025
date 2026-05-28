@@ -401,6 +401,74 @@
       font-style: italic;
     }
 
+    /* ── Eye / cover letter button ──────────────────────── */
+    .eye-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 5px 6px;
+      border-radius: 6px;
+      display: inline-flex;
+      align-items: center;
+      transition: color .15s, background .15s;
+    }
+    .eye-btn.has-text { color: var(--accent2); }
+    .eye-btn.has-text:hover { background: rgba(99,102,241,.12); }
+    .eye-btn.no-text { color: var(--muted); opacity: 0.25; pointer-events: none; }
+
+    /* ── Cover letter view modal ─────────────────────────── */
+    .cover-modal-overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,.65);
+      backdrop-filter: blur(6px);
+      z-index: 1100;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .2s;
+    }
+    .cover-modal-overlay.open { opacity: 1; pointer-events: all; }
+    .cover-modal {
+      background: #1a1d27;
+      border: 1px solid rgba(255,255,255,.1);
+      border-radius: 18px;
+      width: 100%;
+      max-width: 600px;
+      max-height: 85vh;
+      display: flex;
+      flex-direction: column;
+      transform: translateY(16px) scale(.98);
+      transition: transform .25s cubic-bezier(.34,1.56,.64,1);
+    }
+    .cover-modal-overlay.open .cover-modal { transform: translateY(0) scale(1); }
+    .cover-modal-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      padding: 24px 28px 16px;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    .cover-modal-head h3 { font-size: 16px; font-weight: 700; }
+    .cover-modal-head p  { font-size: 12px; color: var(--muted); margin-top: 3px; }
+    .cover-modal-body {
+      padding: 24px 28px;
+      overflow-y: auto;
+      flex: 1;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(255,255,255,.1) transparent;
+    }
+    .cover-text {
+      font-size: 13px;
+      line-height: 1.8;
+      color: var(--text);
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
     .edit-btn, .del-btn {
       background: none;
       border: none;
@@ -814,6 +882,11 @@
           </div>
 
           <div class="field full">
+            <label>Cover Letter Text</label>
+            <textarea id="f-cover-text" placeholder="Paste or write your cover letter here…" style="min-height:120px"></textarea>
+          </div>
+
+          <div class="field full">
             <label>My Comment</label>
             <textarea id="f-comment" placeholder="Notes, impressions, follow-up reminders…"></textarea>
           </div>
@@ -825,6 +898,22 @@
           <button type="submit" class="btn-submit">Add to Tracker</button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- Cover Letter View Modal -->
+  <div class="cover-modal-overlay" id="cover-overlay">
+    <div class="cover-modal">
+      <div class="cover-modal-head">
+        <div>
+          <h3 id="cover-title">Cover Letter</h3>
+          <p id="cover-subtitle"></p>
+        </div>
+        <button class="modal-close" id="cover-close" aria-label="Close">✕</button>
+      </div>
+      <div class="cover-modal-body">
+        <div class="cover-text" id="cover-text-body"></div>
+      </div>
     </div>
   </div>
 
@@ -907,6 +996,7 @@
           <th>Details</th>
           <th>Interview</th>
           <th>Comment</th>
+          <th>Letter</th>
           <th>Status</th>
           <th></th>
         </tr>
@@ -1032,6 +1122,11 @@
         <td class="check-cell">${checkCell(j.details, j._id, "details")}</td>
         <td class="td-interview ${j.interview ? "" : "empty"}">${j.interview || "—"}</td>
         <td class="td-comment">${j.comment || "—"}</td>
+        <td style="text-align:center">
+          <button class="eye-btn ${j.coverText ? 'has-text' : 'no-text'}" data-id="${j._id}" title="${j.coverText ? 'View cover letter' : 'No cover letter'}">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          </button>
+        </td>
         <td>${statusSelect(j._id, j.status)}</td>
         <td style="white-space:nowrap">
           <button class="edit-btn" data-id="${j._id}" title="Edit">
@@ -1063,6 +1158,12 @@
       save();
       render();
       showToast(`✕ ${name} removed`);
+      return;
+    }
+    const eyeBtn = e.target.closest(".eye-btn");
+    if (eyeBtn) {
+      const job = JOBS.find(j => j._id === eyeBtn.dataset.id);
+      if (job && job.coverText) openCoverModal(job);
       return;
     }
     const heart = e.target.closest(".heart-btn");
@@ -1117,14 +1218,15 @@
     });
 
     if (job) {
-      document.getElementById("f-company").value  = job.company   || "";
-      document.getElementById("f-vacancy").value   = job.vacancy   || "";
-      document.getElementById("f-link").value      = job.link      || "";
-      document.getElementById("f-skills").value    = job.skills    || "";
-      document.getElementById("f-date").value      = toISODate(job.date);
-      document.getElementById("f-status").value    = job.status    || "Applied";
-      document.getElementById("f-interview").value = toISODate(job.interview);
-      document.getElementById("f-comment").value   = job.comment   || "";
+      document.getElementById("f-company").value     = job.company    || "";
+      document.getElementById("f-vacancy").value     = job.vacancy    || "";
+      document.getElementById("f-link").value        = job.link       || "";
+      document.getElementById("f-skills").value      = job.skills     || "";
+      document.getElementById("f-date").value        = toISODate(job.date);
+      document.getElementById("f-status").value      = job.status     || "Applied";
+      document.getElementById("f-interview").value   = toISODate(job.interview);
+      document.getElementById("f-cover-text").value  = job.coverText  || "";
+      document.getElementById("f-comment").value     = job.comment    || "";
       ["cv","cover","details"].forEach(field => {
         if (job[field]) {
           document.getElementById("f-" + field).checked = true;
@@ -1192,6 +1294,7 @@
         job.cover     = document.getElementById("f-cover").checked ? 1 : 0;
         job.details   = document.getElementById("f-details").checked ? 1 : 0;
         job.interview = fmtDate(intRaw);
+        job.coverText = document.getElementById("f-cover-text").value.trim();
         job.comment   = document.getElementById("f-comment").value.trim();
         job.status    = document.getElementById("f-status").value;
       }
@@ -1211,6 +1314,7 @@
         cover:     document.getElementById("f-cover").checked ? 1 : 0,
         details:   document.getElementById("f-details").checked ? 1 : 0,
         interview: fmtDate(intRaw),
+        coverText: document.getElementById("f-cover-text").value.trim(),
         comment:   document.getElementById("f-comment").value.trim(),
         status:    document.getElementById("f-status").value,
         liked:     0,
@@ -1222,6 +1326,20 @@
       showToast(`✓ ${company} added to tracker`);
     }
   });
+
+  // ── Cover letter popup ────────────────────────────────────────────────────
+  const coverOverlay = document.getElementById("cover-overlay");
+
+  function openCoverModal(job) {
+    document.getElementById("cover-title").textContent    = job.company + " — Cover Letter";
+    document.getElementById("cover-subtitle").textContent = job.vacancy || "";
+    document.getElementById("cover-text-body").textContent = job.coverText;
+    coverOverlay.classList.add("open");
+  }
+
+  document.getElementById("cover-close").addEventListener("click", () => coverOverlay.classList.remove("open"));
+  coverOverlay.addEventListener("click", e => { if (e.target === coverOverlay) coverOverlay.classList.remove("open"); });
+  document.addEventListener("keydown", e => { if (e.key === "Escape") coverOverlay.classList.remove("open"); });
 
   // ── Filter / search events ────────────────────────────────────────────────
   document.getElementById("search").addEventListener("input", e => {
