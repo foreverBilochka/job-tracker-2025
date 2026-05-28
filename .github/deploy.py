@@ -2,9 +2,9 @@
 """Deploy static files to Vercel via REST API (no CLI needed)."""
 import hashlib, os, sys, urllib.request, json
 
-TOKEN      = os.environ["VERCEL_TOKEN"]
-PROJECT_ID = os.environ["VERCEL_PROJECT_ID"]
-ORG_ID     = os.environ.get("VERCEL_ORG_ID", "")
+TOKEN      = os.environ["VERCEL_TOKEN"].strip()
+PROJECT_ID = os.environ["VERCEL_PROJECT_ID"].strip()
+ORG_ID     = os.environ.get("VERCEL_ORG_ID", "").strip()
 BASE       = "https://api.vercel.com"
 HEADERS    = {"Authorization": f"Bearer {TOKEN}", "Content-Type": "application/json"}
 
