@@ -1,10 +1,16 @@
 #!/usr/bin/env python3
 """Deploy static files to Vercel via REST API (no CLI needed)."""
-import hashlib, os, sys, urllib.request, urllib.parse, json
+import hashlib, os, re, sys, urllib.request, urllib.parse, json
 
-TOKEN      = os.environ["VERCEL_TOKEN"].strip()
-PROJECT_ID = "".join(os.environ["VERCEL_PROJECT_ID"].split())   # remove ALL whitespace
-ORG_ID     = "".join(os.environ.get("VERCEL_ORG_ID", "").split())
+def clean(val, allow=r"[^A-Za-z0-9_\-\.]"):
+    """Keep only safe ASCII chars; strip arrows/spaces/UI junk."""
+    return re.sub(allow, "", val)
+
+TOKEN      = clean(os.environ["VERCEL_TOKEN"])
+PROJECT_ID = clean(os.environ["VERCEL_PROJECT_ID"], r"[^A-Za-z0-9_\-]")
+ORG_ID     = clean(os.environ.get("VERCEL_ORG_ID", ""), r"[^A-Za-z0-9_\-]")
+
+print(f"Project ID: {PROJECT_ID[:6]}…")  # show first 6 chars for debug
 BASE       = "https://api.vercel.com"
 HEADERS    = {"Authorization": f"Bearer {TOKEN}", "Content-Type": "application/json"}
 
