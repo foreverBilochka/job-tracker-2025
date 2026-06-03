@@ -292,6 +292,8 @@
     }
     tbody tr:last-child { border-bottom: none; }
     tbody tr:hover { background: rgba(99,102,241,.05); }
+    tbody tr.row-cancelled { opacity: 0.4; filter: grayscale(0.5); }
+    tbody tr.row-cancelled:hover { opacity: 0.6; }
 
     td {
       padding: 14px 16px;
@@ -1109,7 +1111,7 @@
       return;
     }
     tbody.innerHTML = data.map((j, i) => `
-      <tr data-id="${j._id}">
+      <tr data-id="${j._id}" class="${j.status === 'Cancelled' ? 'row-cancelled' : ''}">
         <td class="td-num">${i + 1}</td>
         <td style="text-align:center"><button class="heart-btn ${j.liked ? 'liked' : ''}" data-id="${j._id}" title="${j.liked ? 'Unlike' : 'Like'}">♥</button></td>
         <td class="td-company">${j.company}</td>
@@ -1190,6 +1192,8 @@
     if (!job) return;
     job.status = sel.value;
     sel.className = `status-select s-${sel.value.toLowerCase()}`;
+    const row = sel.closest("tr");
+    if (row) row.className = sel.value === "Cancelled" ? "row-cancelled" : "";
     save();
     renderStats(counts(JOBS));
     ["applied","interview","rejected","offer"].forEach(s => {
