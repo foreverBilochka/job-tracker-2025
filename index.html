@@ -397,10 +397,16 @@
     .td-interview.empty { color: var(--muted); }
 
     .td-comment {
+      max-width: 180px;
+    }
+    .td-comment-inner {
       font-size: 12px;
       color: var(--muted);
-      max-width: 180px;
       font-style: italic;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
     }
 
     /* ── Eye / cover letter button ──────────────────────── */
@@ -1124,7 +1130,7 @@
         <td class="td-skills">${j.skills || "—"}</td>
         <td class="td-date">${j.date || "—"}</td>
         <td class="td-interview ${j.interview ? "" : "empty"}">${j.interview || "—"}</td>
-        <td class="td-comment">${j.comment || "—"}</td>
+        <td class="td-comment"><div class="td-comment-inner">${j.comment || "—"}</div></td>
         <td style="text-align:center">
           <button class="eye-btn ${j.coverText ? 'has-text' : 'no-text'}" data-id="${j._id}" title="${j.coverText ? 'View cover letter' : 'No cover letter'}">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
