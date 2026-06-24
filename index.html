@@ -294,6 +294,13 @@
     tbody tr:hover { background: rgba(99,102,241,.05); }
     tbody tr.row-cancelled { opacity: 0.4; filter: grayscale(0.5); }
     tbody tr.row-cancelled:hover { opacity: 0.6; }
+    tbody tr.row-interview { background: rgba(59,130,246,.09); }
+    tbody tr.row-interview:hover { background: rgba(59,130,246,.15); }
+    tbody tr.row-interview td:first-child { border-left: 3px solid rgba(59,130,246,.65); }
+    tbody tr.row-rejected { background: rgba(239,68,68,.07); }
+    tbody tr.row-rejected:hover { background: rgba(239,68,68,.13); }
+    tbody tr.row-rejected td:first-child { border-left: 3px solid rgba(239,68,68,.55); }
+    tbody tr.row-rejected .td-company { text-decoration: line-through; opacity: .7; }
 
     td {
       padding: 14px 16px;
@@ -501,21 +508,34 @@
       font-family: var(--font);
       font-size: 11px;
       font-weight: 600;
-      padding: 5px 10px;
+      padding: 5px 22px 5px 10px;
       border-radius: 99px;
       cursor: pointer;
       appearance: none;
       -webkit-appearance: none;
       text-align: center;
       transition: filter .15s, transform .12s;
+      background-repeat: no-repeat;
+      background-position: right 8px center;
+      background-size: 8px 8px;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='currentColor' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
     }
     .status-select:hover { filter: brightness(1.15); transform: scale(1.04); }
     .status-select option { background: #1a1d27; color: #f0f2f8; font-weight: 500; }
-    .s-applied    { background: rgba(16,185,129,.15);  color: #10b981; }
-    .s-interview  { background: rgba(59,130,246,.15);  color: #60a5fa; }
-    .s-rejected   { background: rgba(239,68,68,.15);   color: #f87171; }
-    .s-offer      { background: rgba(245,158,11,.15);  color: #fbbf24; }
-    .s-cancelled  { background: rgba(107,114,128,.15); color: #9ca3af; }
+    .s-applied    { background-color: rgba(16,185,129,.15);  color: #10b981; }
+    .s-interview  { background-color: rgba(59,130,246,.15);  color: #60a5fa; }
+    .s-test-task  { background-color: rgba(168,85,247,.15);  color: #c084fc; }
+    .s-rejected   { background-color: rgba(239,68,68,.15);   color: #f87171; }
+    .s-offer      { background-color: rgba(245,158,11,.15);  color: #fbbf24; }
+    .s-cancelled  { background-color: rgba(107,114,128,.15); color: #9ca3af; }
+
+    /* Bold separator between priority rows (Interview / Test Task) and the rest */
+    .status-separator td {
+      padding: 0;
+      height: 0;
+      border: none;
+      border-top: 3px solid var(--accent);
+    }
 
     /* ── Empty state ─────────────────────────────────── */
     .empty-row td {
@@ -863,6 +883,7 @@
             <select id="f-status">
               <option value="Applied">Applied</option>
               <option value="Interview">Interview</option>
+              <option value="Test Task">Test Task</option>
               <option value="Rejected">Rejected</option>
               <option value="Offer">Offer</option>
               <option value="Cancelled">Cancelled</option>
@@ -1084,10 +1105,11 @@
   }
 
   function statusSelect(id, status) {
-    const opts = ["Applied","Interview","Rejected","Offer","Cancelled"].map(s =>
+    const opts = ["Applied","Interview","Test Task","Rejected","Offer","Cancelled"].map(s =>
       `<option value="${s}"${s === status ? " selected" : ""}>${s}</option>`
     ).join("");
-    return `<select class="status-select s-${status.toLowerCase()}" data-id="${id}">${opts}</select>`;
+    const slug = status.toLowerCase().replace(/\s+/g, "-");
+    return `<select class="status-select s-${slug}" data-id="${id}">${opts}</select>`;
   }
 
   function checkCell(val, id, field) {
@@ -1109,7 +1131,20 @@
       const matchSearch = !q || [j.company, j.vacancy, j.skills, j.comment]
         .some(f => (f || "").toLowerCase().includes(q));
       return matchFilter && matchSearch;
-    }).reverse();
+    }).reverse().sort((a, b) => {
+      const aPriority = isPriorityStatus(a.status);
+      const bPriority = isPriorityStatus(b.status);
+      if (aPriority !== bPriority) return aPriority ? -1 : 1;
+      const aHas = !!a.interview && a.status !== "Cancelled";
+      const bHas = !!b.interview && b.status !== "Cancelled";
+      if (aHas !== bHas) return aHas ? -1 : 1;
+      if (aHas && bHas) return toISODate(a.interview).localeCompare(toISODate(b.interview));
+      return 0;
+    });
+  }
+
+  function isPriorityStatus(status) {
+    return status === "Interview" || status === "Test Task";
   }
 
   function render() {
@@ -1120,8 +1155,10 @@
       renderStats(counts([]));
       return;
     }
+    const priorityCount = data.filter(j => isPriorityStatus(j.status)).length;
     tbody.innerHTML = data.map((j, i) => `
-      <tr data-id="${j._id}" class="${j.status === 'Cancelled' ? 'row-cancelled' : ''}">
+      ${i === priorityCount && priorityCount > 0 && priorityCount < data.length ? `<tr class="status-separator"><td colspan="12"></td></tr>` : ""}
+      <tr data-id="${j._id}" class="${j.status === 'Cancelled' ? 'row-cancelled' : j.status === 'Rejected' ? 'row-rejected' : j.interview ? 'row-interview' : ''}">
         <td class="td-num">${i + 1}</td>
         <td style="text-align:center"><button class="heart-btn ${j.liked ? 'liked' : ''}" data-id="${j._id}" title="${j.liked ? 'Unlike' : 'Like'}">♥</button></td>
         <td class="td-company">${j.company}</td>
@@ -1201,11 +1238,8 @@
     const job = JOBS.find(j => j._id === sel.dataset.id);
     if (!job) return;
     job.status = sel.value;
-    sel.className = `status-select s-${sel.value.toLowerCase()}`;
-    const row = sel.closest("tr");
-    if (row) row.className = sel.value === "Cancelled" ? "row-cancelled" : "";
     save();
-    renderStats(counts(JOBS));
+    render();
     ["applied","interview","rejected","offer"].forEach(s => {
       const c = counts(JOBS);
       document.getElementById("seg-" + s).style.width = c.total
