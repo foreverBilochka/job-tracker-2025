@@ -206,6 +206,26 @@
     .seg-rejected  { background: #ef4444; }
     .seg-offer     { background: #f59e0b; }
 
+    .progress-legend {
+      display: flex;
+      gap: 18px;
+      margin-top: 12px;
+      flex-wrap: wrap;
+    }
+    .legend-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      color: var(--muted);
+    }
+    .legend-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
     /* ── Toolbar ─────────────────────────────────────── */
     .toolbar {
       display: flex;
@@ -261,8 +281,8 @@
       background: var(--surface);
       border: 1px solid var(--border);
       border-radius: var(--radius);
-      overflow: hidden;
-      overflow-x: auto;
+      overflow: auto;
+      max-height: 70vh;
     }
 
     table {
@@ -283,6 +303,9 @@
       text-align: left;
       white-space: nowrap;
       border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      z-index: 2;
     }
     thead th:first-child { padding-left: 24px; }
 
@@ -326,7 +349,7 @@
     }
 
     .td-link a {
-      color: var(--accent2);
+      color: #ffffff;
       text-decoration: none;
       font-size: 11px;
       font-weight: 500;
@@ -518,23 +541,28 @@
       background-repeat: no-repeat;
       background-position: right 8px center;
       background-size: 8px 8px;
-      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='currentColor' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%23ffffff' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
     }
     .status-select:hover { filter: brightness(1.15); transform: scale(1.04); }
     .status-select option { background: #1a1d27; color: #f0f2f8; font-weight: 500; }
-    .s-applied    { background-color: rgba(16,185,129,.15);  color: #10b981; }
-    .s-interview  { background-color: rgba(59,130,246,.15);  color: #60a5fa; }
-    .s-test-task  { background-color: rgba(168,85,247,.15);  color: #c084fc; }
+    .s-applied    { background-color: rgba(59,130,246,.15);  color: #60a5fa; }
+    .s-interview  { background-color: rgba(16,185,129,.15);  color: #10b981; }
+    .s-test-task  { background-color: rgba(4,120,87,.2);     color: #047857; }
     .s-rejected   { background-color: rgba(239,68,68,.15);   color: #f87171; }
     .s-offer      { background-color: rgba(245,158,11,.15);  color: #fbbf24; }
     .s-cancelled  { background-color: rgba(107,114,128,.15); color: #9ca3af; }
 
     /* Bold separator between priority rows (Interview / Test Task) and the rest */
     .status-separator td {
-      padding: 0;
-      height: 0;
+      padding: 9px 0;
       border: none;
-      border-top: 3px solid var(--accent);
+    }
+    .status-separator td::after {
+      content: "";
+      display: block;
+      height: 3px;
+      border-radius: 2px;
+      background: var(--accent);
     }
 
     /* ── Empty state ─────────────────────────────────── */
@@ -958,27 +986,27 @@
   <!-- Stats -->
   <div class="stats" id="stats">
     <div class="stat-card total">
-      <div class="stat-label">Total Applied</div>
+      <div class="stat-label">📨 Total Applied</div>
       <div class="stat-number" id="cnt-total">0</div>
       <div class="stat-sub">since May 2025</div>
     </div>
     <div class="stat-card applied">
-      <div class="stat-label">Pending</div>
+      <div class="stat-label">⏳ Pending</div>
       <div class="stat-number" id="cnt-applied">0</div>
       <div class="stat-sub">awaiting response</div>
     </div>
     <div class="stat-card interview">
-      <div class="stat-label">Interviews</div>
+      <div class="stat-label">🎤 Interviews</div>
       <div class="stat-number" id="cnt-interview">0</div>
       <div class="stat-sub">in process</div>
     </div>
     <div class="stat-card rejected">
-      <div class="stat-label">Rejected</div>
+      <div class="stat-label">❌ Rejected</div>
       <div class="stat-number" id="cnt-rejected">0</div>
       <div class="stat-sub" id="rej-rate"></div>
     </div>
     <div class="stat-card offer">
-      <div class="stat-label">Offers</div>
+      <div class="stat-label">🎉 Offers</div>
       <div class="stat-number" id="cnt-offer">0</div>
       <div class="stat-sub" id="offer-rate"></div>
     </div>
@@ -995,6 +1023,12 @@
       <div class="progress-seg seg-interview" id="seg-interview" style="width:0"></div>
       <div class="progress-seg seg-rejected"  id="seg-rejected"  style="width:0"></div>
       <div class="progress-seg seg-offer"     id="seg-offer"     style="width:0"></div>
+    </div>
+    <div class="progress-legend">
+      <span class="legend-item"><span class="legend-dot seg-applied"></span>Applied</span>
+      <span class="legend-item"><span class="legend-dot seg-interview"></span>Interview</span>
+      <span class="legend-item"><span class="legend-dot seg-rejected"></span>Rejected</span>
+      <span class="legend-item"><span class="legend-dot seg-offer"></span>Offer</span>
     </div>
   </div>
 
@@ -1024,12 +1058,12 @@
           <th>♥</th>
           <th>Company</th>
           <th>Vacancy</th>
-          <th>Link</th>
           <th>Key Skills</th>
           <th>Date Sent</th>
           <th>Interview</th>
           <th>Comment</th>
           <th>Letter</th>
+          <th>Link</th>
           <th>Status</th>
           <th></th>
         </tr>
@@ -1163,7 +1197,6 @@
         <td style="text-align:center"><button class="heart-btn ${j.liked ? 'liked' : ''}" data-id="${j._id}" title="${j.liked ? 'Unlike' : 'Like'}">♥</button></td>
         <td class="td-company">${j.company}</td>
         <td class="td-vacancy">${j.vacancy || "—"}</td>
-        <td class="td-link">${j.link ? `<a href="${j.link}" target="_blank" rel="noopener noreferrer">View →</a>` : `<span style="color:var(--muted)">—</span>`}</td>
         <td class="td-skills">${j.skills || "—"}</td>
         <td class="td-date">${j.date || "—"}</td>
         <td class="td-interview ${j.interview ? "" : "empty"}">${j.interview || "—"}</td>
@@ -1173,6 +1206,7 @@
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
           </button>
         </td>
+        <td class="td-link">${j.link ? `<a href="${j.link}" target="_blank" rel="noopener noreferrer">View →</a>` : `<span style="color:var(--muted)">—</span>`}</td>
         <td>${statusSelect(j._id, j.status)}</td>
         <td style="white-space:nowrap">
           <button class="edit-btn" data-id="${j._id}" title="Edit">
