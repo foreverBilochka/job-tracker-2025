@@ -250,7 +250,7 @@
       background: var(--surface);
       border: 1px solid var(--border);
       border-radius: 9px;
-      padding: 10px 14px 10px 40px;
+      padding: 10px 36px 10px 40px;
       font-family: var(--font);
       font-size: 13px;
       color: var(--text);
@@ -259,6 +259,24 @@
     }
     .search-input::placeholder { color: var(--muted); }
     .search-input:focus { border-color: rgba(99,102,241,.5); }
+
+    .search-clear {
+      position: absolute;
+      right: 10px; top: 50%;
+      transform: translateY(-50%);
+      width: 20px; height: 20px;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      border: none;
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+      border-radius: 50%;
+      transition: color .15s, background .15s;
+    }
+    .search-clear:hover { color: var(--text); background: rgba(255,255,255,.08); }
+    .search-wrap.has-text .search-clear { display: flex; }
 
     .filter-btns { display: flex; gap: 6px; flex-wrap: wrap; }
     .filter-btn {
@@ -281,8 +299,6 @@
       background: var(--surface);
       border: 1px solid var(--border);
       border-radius: var(--radius);
-      overflow: auto;
-      max-height: 70vh;
     }
 
     table {
@@ -290,6 +306,7 @@
       border-collapse: collapse;
       min-width: 900px;
       font-size: 13px;
+      table-layout: fixed;
     }
 
     thead th {
@@ -307,7 +324,8 @@
       top: 0;
       z-index: 2;
     }
-    thead th:first-child { padding-left: 24px; }
+    thead th:first-child { padding-left: 24px; border-top-left-radius: var(--radius); }
+    thead th:last-child { border-top-right-radius: var(--radius); }
 
     tbody tr {
       border-bottom: 1px solid var(--border);
@@ -551,19 +569,6 @@
     .s-rejected   { background-color: rgba(239,68,68,.15);   color: #f87171; }
     .s-offer      { background-color: rgba(245,158,11,.15);  color: #fbbf24; }
     .s-cancelled  { background-color: rgba(107,114,128,.15); color: #9ca3af; }
-
-    /* Bold separator between priority rows (Interview / Test Task) and the rest */
-    .status-separator td {
-      padding: 9px 0;
-      border: none;
-    }
-    .status-separator td::after {
-      content: "";
-      display: block;
-      height: 3px;
-      border-radius: 2px;
-      background: var(--accent);
-    }
 
     /* ── Empty state ─────────────────────────────────── */
     .empty-row td {
@@ -1037,6 +1042,9 @@
     <div class="search-wrap">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
       <input class="search-input" type="text" id="search" placeholder="Search company, vacancy, skills…" />
+      <button class="search-clear" id="search-clear" title="Clear search" type="button">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </button>
     </div>
     <div class="filter-btns">
       <button class="filter-btn active" data-filter="all">All</button>
@@ -1049,27 +1057,47 @@
     </div>
   </div>
 
-  <!-- Table -->
-  <div class="table-wrap">
-    <table>
-      <thead>
-        <tr>
-          <th>#</th>
-          <th>♥</th>
-          <th>Company</th>
-          <th>Vacancy</th>
-          <th>Key Skills</th>
-          <th>Date Sent</th>
-          <th>Interview</th>
-          <th>Comment</th>
-          <th>Letter</th>
-          <th>Link</th>
-          <th>Status</th>
-          <th></th>
-        </tr>
-      </thead>
-      <tbody id="tbody"></tbody>
-    </table>
+  <!-- Tables -->
+  <div id="tables-wrap">
+    <div class="table-wrap" id="priority-wrap" style="display:none">
+      <table>
+        <colgroup>
+          <col style="width:3%"><col style="width:4%"><col style="width:10%">
+          <col style="width:10%"><col style="width:13%"><col style="width:8%">
+          <col style="width:8%"><col style="width:15%"><col style="width:6%">
+          <col style="width:7%"><col style="width:9%"><col style="width:7%">
+        </colgroup>
+        <tbody id="tbody-priority"></tbody>
+      </table>
+    </div>
+
+    <div class="table-wrap" id="main-wrap" style="margin-top:16px">
+      <table>
+        <colgroup>
+          <col style="width:3%"><col style="width:4%"><col style="width:10%">
+          <col style="width:10%"><col style="width:13%"><col style="width:8%">
+          <col style="width:8%"><col style="width:15%"><col style="width:6%">
+          <col style="width:7%"><col style="width:9%"><col style="width:7%">
+        </colgroup>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>♥</th>
+            <th>Company</th>
+            <th>Vacancy</th>
+            <th>Key Skills</th>
+            <th>Date Sent</th>
+            <th>Interview</th>
+            <th>Comment</th>
+            <th>Letter</th>
+            <th>Link</th>
+            <th>Status</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
   </div>
 
   <footer>
@@ -1166,9 +1194,6 @@
         .some(f => (f || "").toLowerCase().includes(q));
       return matchFilter && matchSearch;
     }).reverse().sort((a, b) => {
-      const aPriority = isPriorityStatus(a.status);
-      const bPriority = isPriorityStatus(b.status);
-      if (aPriority !== bPriority) return aPriority ? -1 : 1;
       const aHas = !!a.interview && a.status !== "Cancelled";
       const bHas = !!b.interview && b.status !== "Cancelled";
       if (aHas !== bHas) return aHas ? -1 : 1;
@@ -1181,19 +1206,10 @@
     return status === "Interview" || status === "Test Task";
   }
 
-  function render() {
-    const data = filtered();
-    const tbody = document.getElementById("tbody");
-    if (!data.length) {
-      tbody.innerHTML = `<tr class="empty-row"><td colspan="12">No applications match your filter.</td></tr>`;
-      renderStats(counts([]));
-      return;
-    }
-    const priorityCount = data.filter(j => isPriorityStatus(j.status)).length;
-    tbody.innerHTML = data.map((j, i) => `
-      ${i === priorityCount && priorityCount > 0 && priorityCount < data.length ? `<tr class="status-separator"><td colspan="12"></td></tr>` : ""}
+  function rowHtml(j, num) {
+    return `
       <tr data-id="${j._id}" class="${j.status === 'Cancelled' ? 'row-cancelled' : j.status === 'Rejected' ? 'row-rejected' : j.interview ? 'row-interview' : ''}">
-        <td class="td-num">${i + 1}</td>
+        <td class="td-num">${num}</td>
         <td style="text-align:center"><button class="heart-btn ${j.liked ? 'liked' : ''}" data-id="${j._id}" title="${j.liked ? 'Unlike' : 'Like'}">♥</button></td>
         <td class="td-company">${j.company}</td>
         <td class="td-vacancy">${j.vacancy || "—"}</td>
@@ -1217,12 +1233,40 @@
           </button>
         </td>
       </tr>
-    `).join("");
+    `;
+  }
+
+  function render() {
+    const data = filtered();
+    const priorityWrap = document.getElementById("priority-wrap");
+    const tbodyPriority = document.getElementById("tbody-priority");
+    const tbody = document.getElementById("tbody");
+
+    if (!data.length) {
+      priorityWrap.style.display = "none";
+      tbodyPriority.innerHTML = "";
+      tbody.innerHTML = `<tr class="empty-row"><td colspan="12">No applications match your filter.</td></tr>`;
+      renderStats(counts([]));
+      return;
+    }
+
+    const priorityRows = data.filter(j => isPriorityStatus(j.status));
+    const restRows = data.filter(j => !isPriorityStatus(j.status));
+
+    if (priorityRows.length) {
+      priorityWrap.style.display = "";
+      tbodyPriority.innerHTML = priorityRows.map((j, i) => rowHtml(j, i + 1)).join("");
+    } else {
+      priorityWrap.style.display = "none";
+      tbodyPriority.innerHTML = "";
+    }
+
+    tbody.innerHTML = restRows.map((j, i) => rowHtml(j, priorityRows.length + i + 1)).join("");
     renderStats(counts(data));
   }
 
   // ── Table interactions ────────────────────────────────────────────────────
-  document.getElementById("tbody").addEventListener("click", e => {
+  document.getElementById("tables-wrap").addEventListener("click", e => {
     const editBtn = e.target.closest(".edit-btn");
     if (editBtn) {
       const job = JOBS.find(j => j._id === editBtn.dataset.id);
@@ -1266,7 +1310,7 @@
     render();
   });
 
-  document.getElementById("tbody").addEventListener("change", e => {
+  document.getElementById("tables-wrap").addEventListener("change", e => {
     const sel = e.target.closest(".status-select");
     if (!sel) return;
     const job = JOBS.find(j => j._id === sel.dataset.id);
@@ -1461,8 +1505,19 @@
   document.addEventListener("keydown", e => { if (e.key === "Escape") coverOverlay.classList.remove("open"); });
 
   // ── Filter / search events ────────────────────────────────────────────────
-  document.getElementById("search").addEventListener("input", e => {
+  const searchInput = document.getElementById("search");
+  const searchWrap = document.querySelector(".search-wrap");
+  searchInput.addEventListener("input", e => {
     currentSearch = e.target.value;
+    searchWrap.classList.toggle("has-text", !!currentSearch);
+    render();
+  });
+
+  document.getElementById("search-clear").addEventListener("click", () => {
+    searchInput.value = "";
+    currentSearch = "";
+    searchWrap.classList.remove("has-text");
+    searchInput.focus();
     render();
   });
 
