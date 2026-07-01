@@ -306,7 +306,6 @@
       border-collapse: collapse;
       min-width: 900px;
       font-size: 13px;
-      table-layout: fixed;
     }
 
     thead th {
@@ -335,9 +334,22 @@
     tbody tr:hover { background: rgba(99,102,241,.05); }
     tbody tr.row-cancelled { opacity: 0.4; filter: grayscale(0.5); }
     tbody tr.row-cancelled:hover { opacity: 0.6; }
-    tbody tr.row-interview { background: rgba(59,130,246,.09); }
-    tbody tr.row-interview:hover { background: rgba(59,130,246,.15); }
-    tbody tr.row-interview td:first-child { border-left: 3px solid rgba(59,130,246,.65); }
+    tbody tr.row-priority { background: rgba(16,185,129,.08); }
+    tbody tr.row-priority:hover { background: rgba(16,185,129,.14); }
+    tbody tr.row-priority td:first-child { border-left: 3px solid rgba(16,185,129,.6); }
+
+    /* Separator between priority rows and the rest */
+    tbody tr.status-separator td {
+      padding: 9px 0;
+      border: none;
+    }
+    tbody tr.status-separator td::after {
+      content: "";
+      display: block;
+      height: 3px;
+      border-radius: 2px;
+      background: var(--accent);
+    }
     tbody tr.row-rejected { background: rgba(239,68,68,.07); }
     tbody tr.row-rejected:hover { background: rgba(239,68,68,.13); }
     tbody tr.row-rejected td:first-child { border-left: 3px solid rgba(239,68,68,.55); }
@@ -565,7 +577,8 @@
     .status-select option { background: #1a1d27; color: #f0f2f8; font-weight: 500; }
     .s-applied    { background-color: rgba(59,130,246,.15);  color: #60a5fa; }
     .s-interview  { background-color: rgba(16,185,129,.15);  color: #10b981; }
-    .s-test-task  { background-color: rgba(4,120,87,.2);     color: #047857; }
+    .s-test-task      { background-color: rgba(4,120,87,.2);      color: #047857; }
+    .s-tech-interview { background-color: rgba(6,182,212,.15);   color: #22d3ee; }
     .s-rejected   { background-color: rgba(239,68,68,.15);   color: #f87171; }
     .s-offer      { background-color: rgba(245,158,11,.15);  color: #fbbf24; }
     .s-cancelled  { background-color: rgba(107,114,128,.15); color: #9ca3af; }
@@ -916,6 +929,7 @@
             <select id="f-status">
               <option value="Applied">Applied</option>
               <option value="Interview">Interview</option>
+              <option value="Tech Interview">Tech Interview</option>
               <option value="Test Task">Test Task</option>
               <option value="Rejected">Rejected</option>
               <option value="Offer">Offer</option>
@@ -1057,47 +1071,27 @@
     </div>
   </div>
 
-  <!-- Tables -->
-  <div id="tables-wrap">
-    <div class="table-wrap" id="priority-wrap" style="display:none">
-      <table>
-        <colgroup>
-          <col style="width:3%"><col style="width:4%"><col style="width:10%">
-          <col style="width:10%"><col style="width:13%"><col style="width:8%">
-          <col style="width:8%"><col style="width:15%"><col style="width:6%">
-          <col style="width:7%"><col style="width:9%"><col style="width:7%">
-        </colgroup>
-        <tbody id="tbody-priority"></tbody>
-      </table>
-    </div>
-
-    <div class="table-wrap" id="main-wrap" style="margin-top:16px">
-      <table>
-        <colgroup>
-          <col style="width:3%"><col style="width:4%"><col style="width:10%">
-          <col style="width:10%"><col style="width:13%"><col style="width:8%">
-          <col style="width:8%"><col style="width:15%"><col style="width:6%">
-          <col style="width:7%"><col style="width:9%"><col style="width:7%">
-        </colgroup>
-        <thead>
-          <tr>
-            <th>#</th>
-            <th>♥</th>
-            <th>Company</th>
-            <th>Vacancy</th>
-            <th>Key Skills</th>
-            <th>Date Sent</th>
-            <th>Interview</th>
-            <th>Comment</th>
-            <th>Letter</th>
-            <th>Link</th>
-            <th>Status</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody id="tbody"></tbody>
-      </table>
-    </div>
+  <!-- Table -->
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>♥</th>
+          <th>Company</th>
+          <th>Vacancy</th>
+          <th>Key Skills</th>
+          <th>Date Sent</th>
+          <th>Interview</th>
+          <th>Comment</th>
+          <th>Letter</th>
+          <th>Link</th>
+          <th>Status</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="tbody"></tbody>
+    </table>
   </div>
 
   <footer>
@@ -1167,7 +1161,7 @@
   }
 
   function statusSelect(id, status) {
-    const opts = ["Applied","Interview","Test Task","Rejected","Offer","Cancelled"].map(s =>
+    const opts = ["Applied","Interview","Tech Interview","Test Task","Rejected","Offer","Cancelled"].map(s =>
       `<option value="${s}"${s === status ? " selected" : ""}>${s}</option>`
     ).join("");
     const slug = status.toLowerCase().replace(/\s+/g, "-");
@@ -1203,12 +1197,12 @@
   }
 
   function isPriorityStatus(status) {
-    return status === "Interview" || status === "Test Task";
+    return status === "Interview" || status === "Tech Interview" || status === "Test Task";
   }
 
   function rowHtml(j, num) {
     return `
-      <tr data-id="${j._id}" class="${j.status === 'Cancelled' ? 'row-cancelled' : j.status === 'Rejected' ? 'row-rejected' : j.interview ? 'row-interview' : ''}">
+      <tr data-id="${j._id}" class="${j.status === 'Cancelled' ? 'row-cancelled' : j.status === 'Rejected' ? 'row-rejected' : isPriorityStatus(j.status) ? 'row-priority' : ''}">
         <td class="td-num">${num}</td>
         <td style="text-align:center"><button class="heart-btn ${j.liked ? 'liked' : ''}" data-id="${j._id}" title="${j.liked ? 'Unlike' : 'Like'}">♥</button></td>
         <td class="td-company">${j.company}</td>
@@ -1238,35 +1232,29 @@
 
   function render() {
     const data = filtered();
-    const priorityWrap = document.getElementById("priority-wrap");
-    const tbodyPriority = document.getElementById("tbody-priority");
     const tbody = document.getElementById("tbody");
 
     if (!data.length) {
-      priorityWrap.style.display = "none";
-      tbodyPriority.innerHTML = "";
       tbody.innerHTML = `<tr class="empty-row"><td colspan="12">No applications match your filter.</td></tr>`;
       renderStats(counts([]));
       return;
     }
 
     const priorityRows = data.filter(j => isPriorityStatus(j.status));
-    const restRows = data.filter(j => !isPriorityStatus(j.status));
+    const restRows     = data.filter(j => !isPriorityStatus(j.status));
+    const separator    = (priorityRows.length && restRows.length)
+      ? `<tr class="status-separator"><td colspan="12"></td></tr>` : "";
 
-    if (priorityRows.length) {
-      priorityWrap.style.display = "";
-      tbodyPriority.innerHTML = priorityRows.map((j, i) => rowHtml(j, i + 1)).join("");
-    } else {
-      priorityWrap.style.display = "none";
-      tbodyPriority.innerHTML = "";
-    }
+    tbody.innerHTML =
+      priorityRows.map((j, i) => rowHtml(j, i + 1)).join("") +
+      separator +
+      restRows.map((j, i) => rowHtml(j, priorityRows.length + i + 1)).join("");
 
-    tbody.innerHTML = restRows.map((j, i) => rowHtml(j, priorityRows.length + i + 1)).join("");
     renderStats(counts(data));
   }
 
   // ── Table interactions ────────────────────────────────────────────────────
-  document.getElementById("tables-wrap").addEventListener("click", e => {
+  document.getElementById("tbody").addEventListener("click", e => {
     const editBtn = e.target.closest(".edit-btn");
     if (editBtn) {
       const job = JOBS.find(j => j._id === editBtn.dataset.id);
@@ -1310,7 +1298,7 @@
     render();
   });
 
-  document.getElementById("tables-wrap").addEventListener("change", e => {
+  document.getElementById("tbody").addEventListener("change", e => {
     const sel = e.target.closest(".status-select");
     if (!sel) return;
     const job = JOBS.find(j => j._id === sel.dataset.id);
