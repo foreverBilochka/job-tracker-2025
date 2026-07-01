@@ -338,18 +338,6 @@
     tbody tr.row-priority:hover { background: rgba(16,185,129,.14); }
     tbody tr.row-priority td:first-child { border-left: 3px solid rgba(16,185,129,.6); }
 
-    /* Separator between priority rows and the rest */
-    tbody tr.status-separator td {
-      padding: 9px 0;
-      border: none;
-    }
-    tbody tr.status-separator td::after {
-      content: "";
-      display: block;
-      height: 3px;
-      border-radius: 2px;
-      background: var(--accent);
-    }
     tbody tr.row-rejected { background: rgba(239,68,68,.07); }
     tbody tr.row-rejected:hover { background: rgba(239,68,68,.13); }
     tbody tr.row-rejected td:first-child { border-left: 3px solid rgba(239,68,68,.55); }
@@ -1242,12 +1230,8 @@
 
     const priorityRows = data.filter(j => isPriorityStatus(j.status));
     const restRows     = data.filter(j => !isPriorityStatus(j.status));
-    const separator    = (priorityRows.length && restRows.length)
-      ? `<tr class="status-separator"><td colspan="12"></td></tr>` : "";
-
     tbody.innerHTML =
       priorityRows.map((j, i) => rowHtml(j, i + 1)).join("") +
-      separator +
       restRows.map((j, i) => rowHtml(j, priorityRows.length + i + 1)).join("");
 
     renderStats(counts(data));
