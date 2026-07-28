@@ -1176,7 +1176,11 @@
     }).sort((a, b) => {
       const da = toISODate(a.date) || "";
       const db = toISODate(b.date) || "";
-      return db.localeCompare(da);
+      if (!da && !db) return parseInt(b._id.slice(1)) - parseInt(a._id.slice(1));
+      if (!da) return -1;
+      if (!db) return 1;
+      if (da !== db) return db.localeCompare(da);
+      return parseInt(b._id.slice(1)) - parseInt(a._id.slice(1));
     });
   }
 
