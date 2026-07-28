@@ -1173,12 +1173,10 @@
       const matchSearch = !q || [j.company, j.vacancy, j.skills, j.comment]
         .some(f => (f || "").toLowerCase().includes(q));
       return matchFilter && matchSearch;
-    }).reverse().sort((a, b) => {
-      const aHas = !!a.interview && a.status !== "Cancelled";
-      const bHas = !!b.interview && b.status !== "Cancelled";
-      if (aHas !== bHas) return aHas ? -1 : 1;
-      if (aHas && bHas) return toISODate(a.interview).localeCompare(toISODate(b.interview));
-      return 0;
+    }).sort((a, b) => {
+      const da = toISODate(a.date) || "";
+      const db = toISODate(b.date) || "";
+      return db.localeCompare(da);
     });
   }
 
