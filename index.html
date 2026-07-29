@@ -278,6 +278,45 @@
     .search-clear:hover { color: var(--text); background: rgba(255,255,255,.08); }
     .search-wrap.has-text .search-clear { display: flex; }
 
+    .date-range {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+    .date-range label {
+      font-size: 11px;
+      color: var(--muted);
+      white-space: nowrap;
+    }
+    .date-range-input {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      padding: 7px 10px;
+      font-family: var(--font);
+      font-size: 12px;
+      color: var(--text);
+      outline: none;
+      transition: border-color .2s;
+      color-scheme: dark;
+    }
+    .date-range-input:focus { border-color: rgba(99,102,241,.5); }
+    .date-range-clear {
+      font-family: var(--font);
+      font-size: 11px;
+      padding: 6px 10px;
+      border-radius: 7px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+      transition: all .15s;
+      display: none;
+    }
+    .date-range-clear.visible { display: block; }
+    .date-range-clear:hover { color: var(--text); border-color: rgba(99,102,241,.3); }
+
     .filter-btns { display: flex; gap: 6px; flex-wrap: wrap; }
     .filter-btn {
       font-family: var(--font);
@@ -1055,6 +1094,13 @@
       <button class="filter-btn" data-filter="Cancelled">Cancelled</button>
       <button class="filter-btn" data-filter="liked">♥ Liked</button>
     </div>
+    <div class="date-range">
+      <label for="date-from">From</label>
+      <input class="date-range-input" type="date" id="date-from" />
+      <label for="date-to">To</label>
+      <input class="date-range-input" type="date" id="date-to" />
+      <button class="date-range-clear" id="date-range-clear" type="button">✕ Clear</button>
+    </div>
   </div>
 
   <!-- Table -->
@@ -1163,6 +1209,8 @@
   // ── Table render ──────────────────────────────────────────────────────────
   let currentFilter = "all";
   let currentSearch = "";
+  let currentDateFrom = "";
+  let currentDateTo = "";
 
   function filtered() {
     return JOBS.filter(j => {
@@ -1172,7 +1220,10 @@
       const q = currentSearch.toLowerCase();
       const matchSearch = !q || [j.company, j.vacancy, j.skills, j.comment]
         .some(f => (f || "").toLowerCase().includes(q));
-      return matchFilter && matchSearch;
+      const jd = toISODate(j.date) || "";
+      const matchFrom = !currentDateFrom || jd >= currentDateFrom;
+      const matchTo   = !currentDateTo   || jd <= currentDateTo;
+      return matchFilter && matchSearch && matchFrom && matchTo;
     }).sort((a, b) => {
       const da = toISODate(a.date) || "";
       const db = toISODate(b.date) || "";
@@ -1500,6 +1551,29 @@
       currentFilter = btn.dataset.filter;
       render();
     });
+  });
+
+  const dateFromEl  = document.getElementById("date-from");
+  const dateToEl    = document.getElementById("date-to");
+  const dateClearEl = document.getElementById("date-range-clear");
+
+  function updateDateRange() {
+    currentDateFrom = dateFromEl.value;
+    currentDateTo   = dateToEl.value;
+    dateClearEl.classList.toggle("visible", !!(currentDateFrom || currentDateTo));
+    render();
+  }
+
+  dateFromEl.addEventListener("change", updateDateRange);
+  dateToEl.addEventListener("change", updateDateRange);
+
+  dateClearEl.addEventListener("click", () => {
+    dateFromEl.value = "";
+    dateToEl.value   = "";
+    currentDateFrom  = "";
+    currentDateTo    = "";
+    dateClearEl.classList.remove("visible");
+    render();
   });
 
   // ── Init ──────────────────────────────────────────────────────────────────
