@@ -1140,7 +1140,8 @@
   ];
 
   // ── Persistent store ──────────────────────────────────────────────────────
-  const LS_KEY = "jt_jobs_v1";
+  const LS_KEY   = "jt_jobs_v1";
+  const LS_DRAFT = "jt_draft_v1";
   let _nextId = 1;
   function ensureIds(arr) {
     arr.forEach(j => { if (!j._id) j._id = "j" + (_nextId++); else { const n = parseInt(j._id.slice(1)); if (n >= _nextId) _nextId = n + 1; } });
@@ -1148,6 +1149,26 @@
   }
   let JOBS = ensureIds(JSON.parse(localStorage.getItem(LS_KEY) || "null") || SEED.map(j => ({...j})));
   function save() { localStorage.setItem(LS_KEY, JSON.stringify(JOBS)); }
+  function saveDraft() {
+    if (editingId !== null) return;
+    const d = {
+      company:   document.getElementById("f-company").value,
+      vacancy:   document.getElementById("f-vacancy").value,
+      link:      document.getElementById("f-link").value,
+      skills:    document.getElementById("f-skills").value,
+      date:      document.getElementById("f-date").value,
+      status:    document.getElementById("f-status").value,
+      interview: document.getElementById("f-interview").value,
+      coverText: document.getElementById("f-cover-text").value,
+      comment:   document.getElementById("f-comment").value,
+      cv:        document.getElementById("f-cv").checked,
+      cover:     document.getElementById("f-cover").checked,
+      details:   document.getElementById("f-details").checked,
+    };
+    if (d.company || d.vacancy || d.skills || d.comment || d.coverText || d.link)
+      localStorage.setItem(LS_DRAFT, JSON.stringify(d));
+  }
+  function clearDraft() { localStorage.removeItem(LS_DRAFT); }
 
   // ── Helpers ───────────────────────────────────────────────────────────────
   function fmtDate(iso) {
@@ -1383,9 +1404,29 @@
       document.querySelector(".btn-submit").textContent        = "Save Changes";
     } else {
       const today = new Date().toISOString().slice(0,10);
-      document.getElementById("f-date").value = today;
-      document.getElementById("modal-title").textContent      = "New Application";
-      document.querySelector(".btn-submit").textContent        = "Add to Tracker";
+      const draft = JSON.parse(localStorage.getItem(LS_DRAFT) || "null");
+      if (draft) {
+        document.getElementById("f-company").value    = draft.company   || "";
+        document.getElementById("f-vacancy").value    = draft.vacancy   || "";
+        document.getElementById("f-link").value       = draft.link      || "";
+        document.getElementById("f-skills").value     = draft.skills    || "";
+        document.getElementById("f-date").value       = today;
+        document.getElementById("f-status").value     = draft.status    || "Applied";
+        document.getElementById("f-interview").value  = draft.interview || "";
+        document.getElementById("f-cover-text").value = draft.coverText || "";
+        document.getElementById("f-comment").value    = draft.comment   || "";
+        ["cv","cover","details"].forEach(f => {
+          if (draft[f]) {
+            document.getElementById("f-" + f).checked = true;
+            document.getElementById("tog-" + f).classList.add("checked");
+          }
+        });
+        setTimeout(() => showToast("📝 Draft restored — finish or discard"), 150);
+      } else {
+        document.getElementById("f-date").value = today;
+      }
+      document.getElementById("modal-title").textContent  = "New Application";
+      document.querySelector(".btn-submit").textContent   = "Add to Tracker";
     }
 
     overlay.classList.add("open");
@@ -1453,6 +1494,9 @@
     URL.revokeObjectURL(url);
   });
 
+  form.addEventListener("input",  saveDraft);
+  form.addEventListener("change", saveDraft);
+
   document.getElementById("btn-add").addEventListener("click", openModal);
   document.getElementById("modal-close").addEventListener("click", closeModal);
   document.getElementById("btn-cancel").addEventListener("click", closeModal);
@@ -1507,6 +1551,7 @@
       };
       JOBS.push(entry);
       save();
+      clearDraft();
       closeModal();
       render();
       showToast(`✓ ${company} added to tracker`);
