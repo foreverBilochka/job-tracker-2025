@@ -123,7 +123,6 @@
       border-radius: var(--radius);
       padding: 22px 20px;
       position: relative;
-      overflow: hidden;
       transition: transform .2s, border-color .2s;
     }
     .stat-card:hover { transform: translateY(-2px); border-color: rgba(99,102,241,.3); }
@@ -132,6 +131,13 @@
       position: absolute;
       top: 0; left: 0; right: 0;
       height: 3px;
+      border-radius: var(--radius) var(--radius) 0 0;
+    }
+    .stat-icon {
+      font-size: 22px;
+      line-height: 1;
+      margin-bottom: 8px;
+      display: block;
     }
     .stat-card.total::before   { background: var(--accent); }
     .stat-card.applied::before { background: #10b981; }
@@ -376,8 +382,6 @@
     tbody tr.row-priority { background: rgba(59,130,246,.09); border: 1px solid rgba(16,185,129,.35); }
     tbody tr.row-priority:hover { background: rgba(59,130,246,.15); }
 
-    tbody tr.row-rejected { background: rgba(239,68,68,.07); }
-    tbody tr.row-rejected:hover { background: rgba(239,68,68,.13); }
     tbody tr.row-rejected .td-company { text-decoration: line-through; opacity: .7; }
 
     td {
@@ -1030,27 +1034,32 @@
   <!-- Stats -->
   <div class="stats" id="stats">
     <div class="stat-card total">
-      <div class="stat-label">📨 Total Applied</div>
+      <span class="stat-icon">📨</span>
+      <div class="stat-label">Total Applied</div>
       <div class="stat-number" id="cnt-total">0</div>
       <div class="stat-sub">since May 2025</div>
     </div>
     <div class="stat-card applied">
-      <div class="stat-label">⏳ Pending</div>
+      <span class="stat-icon">⏳</span>
+      <div class="stat-label">Pending</div>
       <div class="stat-number" id="cnt-applied">0</div>
       <div class="stat-sub">awaiting response</div>
     </div>
     <div class="stat-card interview">
-      <div class="stat-label">🎤 Interviews</div>
+      <span class="stat-icon">🎤</span>
+      <div class="stat-label">Interviews</div>
       <div class="stat-number" id="cnt-interview">0</div>
       <div class="stat-sub">in process</div>
     </div>
     <div class="stat-card rejected">
-      <div class="stat-label">❌ Rejected</div>
+      <span class="stat-icon">❌</span>
+      <div class="stat-label">Rejected</div>
       <div class="stat-number" id="cnt-rejected">0</div>
       <div class="stat-sub" id="rej-rate"></div>
     </div>
     <div class="stat-card offer">
-      <div class="stat-label">🎉 Offers</div>
+      <span class="stat-icon">🎉</span>
+      <div class="stat-label">Offers</div>
       <div class="stat-number" id="cnt-offer">0</div>
       <div class="stat-sub" id="offer-rate"></div>
     </div>
@@ -1248,11 +1257,13 @@
     }).sort((a, b) => {
       const da = toISODate(a.date) || "";
       const db = toISODate(b.date) || "";
-      if (!da && !db) return parseInt(b._id.slice(1)) - parseInt(a._id.slice(1));
-      if (!da) return -1;
-      if (!db) return 1;
+      const ia = parseInt((a._id || "j0").slice(1));
+      const ib = parseInt((b._id || "j0").slice(1));
+      if (!da && !db) return ib - ia;
+      if (!da) return 1;
+      if (!db) return -1;
       if (da !== db) return db.localeCompare(da);
-      return parseInt(b._id.slice(1)) - parseInt(a._id.slice(1));
+      return ib - ia;
     });
   }
 
