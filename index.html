@@ -380,8 +380,10 @@
     tbody tr:hover { background: rgba(99,102,241,.05); }
     tbody tr.row-cancelled { opacity: 0.4; filter: grayscale(0.5); }
     tbody tr.row-cancelled:hover { opacity: 0.6; }
-    tbody tr.row-priority { background: rgba(59,130,246,.09); border: 1px solid rgba(16,185,129,.35); }
-    tbody tr.row-priority:hover { background: rgba(59,130,246,.15); }
+    tbody tr.row-priority td { background: rgba(59,130,246,.09); border-top: 1px solid rgba(16,185,129,.35); border-bottom: 1px solid rgba(16,185,129,.35); }
+    tbody tr.row-priority td:first-child { border-left: 1px solid rgba(16,185,129,.35); }
+    tbody tr.row-priority td:last-child  { border-right: 1px solid rgba(16,185,129,.35); }
+    tbody tr.row-priority:hover td { background: rgba(59,130,246,.15); }
 
     tbody tr.row-rejected .td-company { text-decoration: line-through; opacity: .7; }
 
