@@ -946,11 +946,6 @@
             <input type="text" id="f-link" placeholder="https://…" />
           </div>
 
-          <div class="field full">
-            <label>Key Skills</label>
-            <input type="text" id="f-skills" placeholder="e.g. Figma, design systems, user research" />
-          </div>
-
           <div class="field">
             <label>Date Sent</label>
             <input type="date" id="f-date" />
@@ -969,28 +964,7 @@
             </select>
           </div>
 
-          <div class="field full">
-            <label>Documents sent</label>
-            <div class="check-group">
-              <label class="check-toggle" id="tog-cv">
-                <input type="checkbox" id="f-cv" />
-                <span class="toggle-box"></span>
-                <span>CV</span>
-              </label>
-              <label class="check-toggle" id="tog-cover">
-                <input type="checkbox" id="f-cover" />
-                <span class="toggle-box"></span>
-                <span>Cover Letter</span>
-              </label>
-              <label class="check-toggle" id="tog-details">
-                <input type="checkbox" id="f-details" />
-                <span class="toggle-box"></span>
-                <span>Details / Portfolio</span>
-              </label>
-            </div>
-          </div>
-
-          <div class="field">
+          <div class="field" id="interview-date-row" style="display:none">
             <label>Interview Day</label>
             <input type="date" id="f-interview" />
           </div>
@@ -1167,17 +1141,13 @@
       company:   document.getElementById("f-company").value,
       vacancy:   document.getElementById("f-vacancy").value,
       link:      document.getElementById("f-link").value,
-      skills:    document.getElementById("f-skills").value,
       date:      document.getElementById("f-date").value,
       status:    document.getElementById("f-status").value,
       interview: document.getElementById("f-interview").value,
       coverText: document.getElementById("f-cover-text").value,
       comment:   document.getElementById("f-comment").value,
-      cv:        document.getElementById("f-cv").checked,
-      cover:     document.getElementById("f-cover").checked,
-      details:   document.getElementById("f-details").checked,
     };
-    if (d.company || d.vacancy || d.skills || d.comment || d.coverText || d.link)
+    if (d.company || d.vacancy || d.comment || d.coverText || d.link)
       localStorage.setItem(LS_DRAFT, JSON.stringify(d));
   }
   function clearDraft() { localStorage.removeItem(LS_DRAFT); }
@@ -1394,28 +1364,18 @@
   function openModal(job) {
     editingId = job ? job._id : null;
     form.reset();
-    ["tog-cv","tog-cover","tog-details"].forEach(id => {
-      document.getElementById(id).classList.remove("checked");
-    });
 
     if (job) {
       document.getElementById("f-company").value     = job.company    || "";
       document.getElementById("f-vacancy").value     = job.vacancy    || "";
       document.getElementById("f-link").value        = job.link       || "";
-      document.getElementById("f-skills").value      = job.skills     || "";
       document.getElementById("f-date").value        = toISODate(job.date);
       document.getElementById("f-status").value      = job.status     || "Applied";
       document.getElementById("f-interview").value   = toISODate(job.interview);
       document.getElementById("f-cover-text").value  = job.coverText  || "";
       document.getElementById("f-comment").value     = job.comment    || "";
-      ["cv","cover","details"].forEach(field => {
-        if (job[field]) {
-          document.getElementById("f-" + field).checked = true;
-          document.getElementById("tog-" + field).classList.add("checked");
-        }
-      });
-      document.getElementById("modal-title").textContent      = "Edit Application";
-      document.querySelector(".btn-submit").textContent        = "Save Changes";
+      document.getElementById("modal-title").textContent = "Edit Application";
+      document.querySelector(".btn-submit").textContent  = "Save Changes";
     } else {
       const today = new Date().toISOString().slice(0,10);
       const draft = JSON.parse(localStorage.getItem(LS_DRAFT) || "null");
@@ -1423,26 +1383,20 @@
         document.getElementById("f-company").value    = draft.company   || "";
         document.getElementById("f-vacancy").value    = draft.vacancy   || "";
         document.getElementById("f-link").value       = draft.link      || "";
-        document.getElementById("f-skills").value     = draft.skills    || "";
         document.getElementById("f-date").value       = today;
         document.getElementById("f-status").value     = draft.status    || "Applied";
         document.getElementById("f-interview").value  = draft.interview || "";
         document.getElementById("f-cover-text").value = draft.coverText || "";
         document.getElementById("f-comment").value    = draft.comment   || "";
-        ["cv","cover","details"].forEach(f => {
-          if (draft[f]) {
-            document.getElementById("f-" + f).checked = true;
-            document.getElementById("tog-" + f).classList.add("checked");
-          }
-        });
         setTimeout(() => showToast("📝 Draft restored — finish or discard"), 150);
       } else {
         document.getElementById("f-date").value = today;
       }
-      document.getElementById("modal-title").textContent  = "New Application";
-      document.querySelector(".btn-submit").textContent   = "Add to Tracker";
+      document.getElementById("modal-title").textContent = "New Application";
+      document.querySelector(".btn-submit").textContent  = "Add to Tracker";
     }
 
+    updateInterviewVisibility();
     overlay.classList.add("open");
     document.getElementById("f-company").focus();
   }
@@ -1458,15 +1412,13 @@
     setTimeout(() => toastEl.classList.remove("show"), 2800);
   }
 
-  // Toggle checkboxes
-  ["tog-cv","tog-cover","tog-details"].forEach(id => {
-    const tog = document.getElementById(id);
-    const inp = tog.querySelector("input");
-    tog.addEventListener("click", () => {
-      inp.checked = !inp.checked;
-      tog.classList.toggle("checked", inp.checked);
-    });
-  });
+  function updateInterviewVisibility() {
+    const s = document.getElementById("f-status").value;
+    const show = s === "Interview" || s === "Tech Interview" || s === "Test Task";
+    document.getElementById("interview-date-row").style.display = show ? "" : "none";
+  }
+
+  document.getElementById("f-status").addEventListener("change", updateInterviewVisibility);
 
   // Duplicate company check
   const dupeWarn = document.getElementById("company-dupe-warn");
@@ -1532,11 +1484,7 @@
         job.company   = company;
         job.vacancy   = document.getElementById("f-vacancy").value.trim();
         job.link      = document.getElementById("f-link").value.trim();
-        job.skills    = document.getElementById("f-skills").value.trim();
         job.date      = fmtDate(dateRaw);
-        job.cv        = document.getElementById("f-cv").checked ? 1 : 0;
-        job.cover     = document.getElementById("f-cover").checked ? 1 : 0;
-        job.details   = document.getElementById("f-details").checked ? 1 : 0;
         job.interview = fmtDate(intRaw);
         job.coverText = document.getElementById("f-cover-text").value.trim();
         job.comment   = document.getElementById("f-comment").value.trim();
@@ -1552,11 +1500,9 @@
         company,
         vacancy:   document.getElementById("f-vacancy").value.trim(),
         link:      document.getElementById("f-link").value.trim(),
-        skills:    document.getElementById("f-skills").value.trim(),
+        skills:    "",
         date:      fmtDate(dateRaw),
-        cv:        document.getElementById("f-cv").checked ? 1 : 0,
-        cover:     document.getElementById("f-cover").checked ? 1 : 0,
-        details:   document.getElementById("f-details").checked ? 1 : 0,
+        cv: 0, cover: 0, details: 0,
         interview: fmtDate(intRaw),
         coverText: document.getElementById("f-cover-text").value.trim(),
         comment:   document.getElementById("f-comment").value.trim(),
