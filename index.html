@@ -140,11 +140,12 @@
       margin-bottom: 8px;
       display: block;
     }
-    .stat-card.total::before   { background: var(--accent); }
-    .stat-card.applied::before { background: #10b981; }
-    .stat-card.interview::before { background: #3b82f6; }
-    .stat-card.rejected::before { background: #ef4444; }
-    .stat-card.offer::before   { background: #f59e0b; }
+    .stat-card.total::before      { background: var(--accent); }
+    .stat-card.applied::before    { background: #10b981; }
+    .stat-card.interview::before  { background: #3b82f6; }
+    .stat-card.testtask::before   { background: #047857; }
+    .stat-card.rejected::before   { background: #ef4444; }
+    .stat-card.offer::before      { background: #f59e0b; }
 
     .stat-label {
       font-size: 11px;
@@ -160,11 +161,12 @@
       letter-spacing: -1.5px;
       line-height: 1;
     }
-    .stat-card.total   .stat-number { color: var(--accent2); }
-    .stat-card.applied .stat-number { color: #10b981; }
+    .stat-card.total     .stat-number { color: var(--accent2); }
+    .stat-card.applied   .stat-number { color: #10b981; }
     .stat-card.interview .stat-number { color: #60a5fa; }
-    .stat-card.rejected .stat-number { color: #f87171; }
-    .stat-card.offer   .stat-number { color: #fbbf24; }
+    .stat-card.testtask  .stat-number { color: #34d399; }
+    .stat-card.rejected  .stat-number { color: #f87171; }
+    .stat-card.offer     .stat-number { color: #fbbf24; }
 
     .stat-sub {
       font-size: 11px;
@@ -382,7 +384,7 @@
     tbody tr.row-cancelled:hover { opacity: 0.6; }
     tbody tr.row-priority td { background: rgba(59,130,246,.09); border-top: 1px solid rgba(16,185,129,.35); border-bottom: 1px solid rgba(16,185,129,.35); }
     tbody tr.row-priority td:first-child { border-left: 1px solid rgba(16,185,129,.35); }
-    tbody tr.row-priority td:last-child  { border-right: 1px solid rgba(16,185,129,.35); }
+    tbody tr.row-priority td:last-child  { border-right: 1px solid rgba(16,185,129,.35); overflow: hidden; }
     tbody tr.row-priority:hover td { background: rgba(59,130,246,.15); }
 
     tbody tr.row-rejected .td-company { text-decoration: line-through; opacity: .7; }
@@ -1026,7 +1028,13 @@
       <span class="stat-icon">🎤</span>
       <div class="stat-label">Interviews</div>
       <div class="stat-number" id="cnt-interview">0</div>
-      <div class="stat-sub">in process</div>
+      <div class="stat-sub">interview + tech</div>
+    </div>
+    <div class="stat-card testtask">
+      <span class="stat-icon">📋</span>
+      <div class="stat-label">Test Tasks</div>
+      <div class="stat-number" id="cnt-testtask">0</div>
+      <div class="stat-sub">in progress</div>
     </div>
     <div class="stat-card rejected">
       <span class="stat-icon">❌</span>
@@ -1176,11 +1184,14 @@
   }
 
   function renderStats(c) {
+    const interviews = (c.interview || 0) + (c["tech interview"] || 0);
+    const testTasks  = c["test task"] || 0;
     document.getElementById("cnt-total").textContent     = c.total;
-    document.getElementById("cnt-applied").textContent   = c.applied   || 0;
-    document.getElementById("cnt-interview").textContent = c.interview || 0;
-    document.getElementById("cnt-rejected").textContent  = c.rejected  || 0;
-    document.getElementById("cnt-offer").textContent     = c.offer     || 0;
+    document.getElementById("cnt-applied").textContent   = c.applied || 0;
+    document.getElementById("cnt-interview").textContent = interviews;
+    document.getElementById("cnt-testtask").textContent  = testTasks;
+    document.getElementById("cnt-rejected").textContent  = c.rejected || 0;
+    document.getElementById("cnt-offer").textContent     = c.offer    || 0;
     const rejRate   = c.total ? Math.round((c.rejected || 0) / c.total * 100) : 0;
     const offerRate = c.total ? Math.round((c.offer    || 0) / c.total * 100) : 0;
     document.getElementById("rej-rate").textContent   = rejRate   + "% rejection rate";
@@ -1192,7 +1203,7 @@
       });
     }
     document.getElementById("progress-text").textContent =
-      `${c.interview || 0} interviews · ${c.offer || 0} offers`;
+      `${interviews} interviews · ${testTasks} test tasks · ${c.offer || 0} offers`;
   }
 
   function statusSelect(id, status) {
