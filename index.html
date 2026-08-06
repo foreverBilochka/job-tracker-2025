@@ -1245,7 +1245,11 @@
 
   function filtered() {
     return JOBS.filter(j => {
-      const matchFilter = currentFilter === "all" || j.status === currentFilter;
+      const matchFilter = currentFilter === "all"
+        ? true
+        : currentFilter === "Interview"
+          ? isPriorityStatus(j.status)
+          : j.status === currentFilter;
       const q = currentSearch.toLowerCase();
       const matchSearch = !q || [j.company, j.vacancy, j.skills, j.comment]
         .some(f => (f || "").toLowerCase().includes(q));
