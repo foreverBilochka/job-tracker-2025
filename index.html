@@ -1104,7 +1104,6 @@
       <button class="filter-btn" data-filter="Rejected">Rejected</button>
       <button class="filter-btn" data-filter="Offer">Offer</button>
       <button class="filter-btn" data-filter="Cancelled">Cancelled</button>
-      <button class="filter-btn" data-filter="liked">♥ Liked</button>
     </div>
     <div class="date-range">
       <label for="date-from">From</label>
@@ -1121,7 +1120,6 @@
       <thead>
         <tr>
           <th>#</th>
-          <th>♥</th>
           <th title="Had interview">🎤</th>
           <th>Company</th>
           <th>Vacancy</th>
@@ -1247,9 +1245,7 @@
 
   function filtered() {
     return JOBS.filter(j => {
-      const matchFilter = currentFilter === "all" || currentFilter === "liked"
-        ? currentFilter === "liked" ? j.liked : true
-        : j.status === currentFilter;
+      const matchFilter = currentFilter === "all" || j.status === currentFilter;
       const q = currentSearch.toLowerCase();
       const matchSearch = !q || [j.company, j.vacancy, j.skills, j.comment]
         .some(f => (f || "").toLowerCase().includes(q));
@@ -1278,7 +1274,6 @@
     return `
       <tr data-id="${j._id}" class="${j.status === 'Cancelled' ? 'row-cancelled' : j.status === 'Rejected' ? 'row-rejected' : isPriorityStatus(j.status) ? 'row-priority' : ''}">
         <td class="td-num">${num}</td>
-        <td style="text-align:center"><button class="heart-btn ${j.liked ? 'liked' : ''}" data-id="${j._id}" title="${j.liked ? 'Unlike' : 'Like'}">♥</button></td>
         <td style="text-align:center"><button class="interview-check-btn ${j.interviewed ? 'done' : ''}" data-id="${j._id}" title="${j.interviewed ? 'Unmark interview' : 'Mark as interviewed'}"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></button></td>
         <td class="td-company">${j.company}</td>
         <td class="td-vacancy">${j.vacancy || "—"}</td>
@@ -1310,7 +1305,7 @@
     const tbody = document.getElementById("tbody");
 
     if (!data.length) {
-      tbody.innerHTML = `<tr class="empty-row"><td colspan="13">No applications match your filter.</td></tr>`;
+      tbody.innerHTML = `<tr class="empty-row"><td colspan="12">No applications match your filter.</td></tr>`;
       renderStats(counts([]));
       return;
     }
@@ -1365,8 +1360,6 @@
       const job = JOBS.find(j => j._id === heart.dataset.id);
       if (!job) return;
       job.liked = job.liked ? 0 : 1;
-      heart.classList.toggle("liked", !!job.liked);
-      heart.title = job.liked ? "Unlike" : "Like";
       save();
       if (currentFilter === "liked") render();
       return;
