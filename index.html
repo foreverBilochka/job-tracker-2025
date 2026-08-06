@@ -438,6 +438,24 @@
       font-size: 12px;
     }
 
+    /* ── Interview check button ─────────────────────── */
+    .interview-check-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: var(--muted);
+      opacity: 0.25;
+      padding: 3px;
+      border-radius: 50%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: opacity .15s, color .15s, transform .15s;
+    }
+    .interview-check-btn:hover { opacity: 0.6; transform: scale(1.15); }
+    .interview-check-btn.done { color: #10b981; opacity: 1; }
+    .interview-check-btn.done:hover { opacity: 0.8; }
+
     /* ── Heart like button ───────────────────────────── */
     .heart-btn {
       background: none;
@@ -1028,7 +1046,7 @@
       <span class="stat-icon">🎤</span>
       <div class="stat-label">Interviews</div>
       <div class="stat-number" id="cnt-interview">0</div>
-      <div class="stat-sub">interview + tech</div>
+      <div class="stat-sub">marked via ✓ in rows</div>
     </div>
     <div class="stat-card testtask">
       <span class="stat-icon">📋</span>
@@ -1104,6 +1122,7 @@
         <tr>
           <th>#</th>
           <th>♥</th>
+          <th title="Had interview">🎤</th>
           <th>Company</th>
           <th>Vacancy</th>
           <th>Key Skills</th>
@@ -1179,16 +1198,16 @@
       acc.total++;
       const s = j.status.toLowerCase();
       acc[s] = (acc[s] || 0) + 1;
+      if (j.interviewed) acc.interviewed = (acc.interviewed || 0) + 1;
       return acc;
-    }, { total:0, applied:0, interview:0, rejected:0, offer:0 });
+    }, { total:0, applied:0, interview:0, rejected:0, offer:0, interviewed:0 });
   }
 
   function renderStats(c) {
-    const interviews = (c.interview || 0) + (c["tech interview"] || 0);
-    const testTasks  = c["test task"] || 0;
+    const testTasks = c["test task"] || 0;
     document.getElementById("cnt-total").textContent     = c.total;
     document.getElementById("cnt-applied").textContent   = c.applied || 0;
-    document.getElementById("cnt-interview").textContent = interviews;
+    document.getElementById("cnt-interview").textContent = c.interviewed || 0;
     document.getElementById("cnt-testtask").textContent  = testTasks;
     document.getElementById("cnt-rejected").textContent  = c.rejected || 0;
     document.getElementById("cnt-offer").textContent     = c.offer    || 0;
@@ -1203,7 +1222,7 @@
       });
     }
     document.getElementById("progress-text").textContent =
-      `${interviews} interviews · ${testTasks} test tasks · ${c.offer || 0} offers`;
+      `${c.interviewed || 0} interviews · ${testTasks} test tasks · ${c.offer || 0} offers`;
   }
 
   function statusSelect(id, status) {
@@ -1260,6 +1279,7 @@
       <tr data-id="${j._id}" class="${j.status === 'Cancelled' ? 'row-cancelled' : j.status === 'Rejected' ? 'row-rejected' : isPriorityStatus(j.status) ? 'row-priority' : ''}">
         <td class="td-num">${num}</td>
         <td style="text-align:center"><button class="heart-btn ${j.liked ? 'liked' : ''}" data-id="${j._id}" title="${j.liked ? 'Unlike' : 'Like'}">♥</button></td>
+        <td style="text-align:center"><button class="interview-check-btn ${j.interviewed ? 'done' : ''}" data-id="${j._id}" title="${j.interviewed ? 'Unmark interview' : 'Mark as interviewed'}"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></button></td>
         <td class="td-company">${j.company}</td>
         <td class="td-vacancy">${j.vacancy || "—"}</td>
         <td class="td-skills">${j.skills || "—"}</td>
@@ -1290,7 +1310,7 @@
     const tbody = document.getElementById("tbody");
 
     if (!data.length) {
-      tbody.innerHTML = `<tr class="empty-row"><td colspan="12">No applications match your filter.</td></tr>`;
+      tbody.innerHTML = `<tr class="empty-row"><td colspan="13">No applications match your filter.</td></tr>`;
       renderStats(counts([]));
       return;
     }
@@ -1327,6 +1347,17 @@
     if (eyeBtn) {
       const job = JOBS.find(j => j._id === eyeBtn.dataset.id);
       if (job && job.coverText) openCoverModal(job);
+      return;
+    }
+    const ivBtn = e.target.closest(".interview-check-btn");
+    if (ivBtn) {
+      const job = JOBS.find(j => j._id === ivBtn.dataset.id);
+      if (!job) return;
+      job.interviewed = job.interviewed ? 0 : 1;
+      ivBtn.classList.toggle("done", !!job.interviewed);
+      ivBtn.title = job.interviewed ? "Unmark interview" : "Mark as interviewed";
+      save();
+      renderStats(counts(JOBS));
       return;
     }
     const heart = e.target.closest(".heart-btn");
@@ -1512,6 +1543,7 @@
         vacancy:   document.getElementById("f-vacancy").value.trim(),
         link:      document.getElementById("f-link").value.trim(),
         skills:    "",
+        interviewed: 0,
         date:      fmtDate(dateRaw),
         cv: 0, cover: 0, details: 0,
         interview: fmtDate(intRaw),
