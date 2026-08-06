@@ -493,13 +493,7 @@
     .check.no  { background: rgba(255,255,255,.04); color: var(--muted); font-size: 11px; }
     .check.no:hover  { background: rgba(255,255,255,.1); color: var(--text); }
 
-    .td-interview {
-      font-size: 12px;
-      white-space: nowrap;
-      color: #60a5fa;
-      font-weight: 500;
-    }
-    .td-interview.empty { color: var(--muted); }
+
 
     .td-comment {
       max-width: 180px;
@@ -1116,7 +1110,7 @@
           <th>Company</th>
           <th>Vacancy</th>
           <th>Date Sent</th>
-          <th>Interview</th>
+
           <th>Comment</th>
           <th>Letter</th>
           <th>Link</th>
@@ -1273,7 +1267,7 @@
         <td class="td-company">${j.company}</td>
         <td class="td-vacancy">${j.vacancy || "—"}</td>
         <td class="td-date">${j.date || "—"}</td>
-        <td class="td-interview ${j.interview ? "" : "empty"}">${j.interview || "—"}</td>
+
         <td class="td-comment"><div class="td-comment-inner">${j.comment || "—"}</div></td>
         <td style="text-align:center">
           <button class="eye-btn ${j.coverText ? 'has-text' : 'no-text'}" data-id="${j._id}" title="${j.coverText ? 'View cover letter' : 'No cover letter'}">
